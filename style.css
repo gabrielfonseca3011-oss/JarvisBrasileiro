@@ -1,0 +1,426 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap');
+
+/* ==========================================================================
+   1. RESET E BASE
+   ========================================================================== */
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family: 'Orbitron', sans-serif;
+    background: #02050a;
+    color: #00eaff;
+    height: 100vh;
+    overflow: hidden; /* Impede que a tela inteira crie barras de rolagem */
+}
+
+.container{
+    display: grid;
+    /* Alterado de 3 colunas para 2 colunas: o chat ocupa o espaço restante (1fr) e os widgets fixam em 320px */
+    grid-template-columns: 1fr 320px;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* ==========================================================================
+   2. CHAT AREA (CENTRO / AGORA EXPANDIDO)
+   ========================================================================== */
+.chat-area{
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Garante que o painel ocupe a altura exata */
+}
+
+.top-bar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #00eaff;
+    background: rgba(5, 11, 21, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.top-bar h1 {
+    font-size: 24px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 15px #00eaff;
+}
+
+.chat-box{
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto; /* Permite rolar apenas as mensagens se acumularem */
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    max-width: 70%;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    
+    /* Melhorias drásticas de leitura */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;      /* Letra um pouco maior */
+    line-height: 1.6;     /* Mais espaço vertical entre as linhas */
+    letter-spacing: 0.5px; /* Espaço suave entre cada letra */
+}
+
+.bot{
+    border: 1px solid #00eaff;
+    background: #071522;
+    box-shadow: 0 0 15px #00eaff50;
+    align-self: flex-start;
+}
+
+.user{
+    border: 1px solid #ff3b3b;
+    background: #220707;
+    color: #ff7777;
+    box-shadow: 0 0 15px #ff3b3b50;
+    align-self: flex-end; /* Alinhamento correto usando flexbox */
+}
+
+/* INPUT AREA */
+.input-area{
+    display: flex;
+    padding: 20px;
+    gap: 10px;
+    border-top: 1px solid rgba(0, 234, 255, 0.2);
+    background: #02050a;
+}
+
+.input-area input{
+    flex: 1;
+    padding: 15px;
+    background: #06111d;
+    border: 1px solid #00eaff;
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.input-area input:focus {
+    box-shadow: 0 0 15px #00eaff;
+}
+
+.input-area button{
+    width: 120px;
+    border: none;
+    background: #00eaff;
+    color: black;
+    font-weight: bold;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.input-area button:hover {
+    background: #00bfff;
+    box-shadow: 0 0 15px #00eaff;
+}
+/* ==========================================================================
+   3. PAINEL DIREITO (HISTÓRICO DE CONVERSAS)
+   ========================================================================== */
+.right-panel {
+    border-left: 1px solid rgba(0, 234, 255, 0.3);
+    padding: 20px;
+    background: #030914;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sidebar-header h3 {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #7fdfff;
+    text-transform: uppercase;
+}
+
+/* Botão de Nova Conversa */
+#btn-new-chat {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px dashed #00eaff;
+    color: #00eaff;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+#btn-new-chat:hover {
+    background: rgba(0, 234, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 234, 255, 0.3);
+    border-style: solid;
+}
+
+/* Lista de itens do histórico */
+.chat-history-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+/* Item individual do histórico */
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(6, 17, 29, 0.4);
+    border: 1px solid rgba(0, 234, 255, 0.15);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.history-item .icon {
+    font-size: 14px;
+}
+
+.history-item .title {
+    font-size: 12px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Corta o texto com "..." se for muito grande */
+}
+
+/* Estado de Hover (Passar o mouse) */
+.history-item:hover {
+    background: rgba(0, 234, 255, 0.1);
+    border-color: #00eaff;
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
+}
+
+/* Item ativo (A conversa que está aberta no momento) */
+.history-item.active {
+    background: rgba(0, 234, 255, 0.15);
+    border-color: #00eaff;
+    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
+}
+
+.history-item.active .title {
+    color: #00eaff;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(0, 234, 255, 0.5);
+}
+
+/* Customização da Barra de Rolagem (Scrollbar) para combinar com o HUD */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #02050a;
+}
+::-webkit-scrollbar-thumb {
+    background: #00eaff50;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #00eaff;
+}
+
+/* ==========================================================================
+   4. TELA DE ENTRADA INTERATIVA (WELCOME SCREEN)
+   ========================================================================== */
+#welcome-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, #071522 0%, #02050a 100%);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.welcome-content {
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    padding: 40px;
+    border: 1px solid rgba(0, 234, 255, 0.2);
+    background: rgba(5, 11, 21, 0.9);
+    box-shadow: 0 0 40px rgba(0, 234, 255, 0.15);
+    border-radius: 6px;
+}
+
+.welcome-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.welcome-form input {
+    width: 100%;
+    padding: 15px;
+    background: #02050a;
+    border: 1px solid rgba(0, 234, 255, 0.5);
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    outline: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.welcome-form input:focus {
+    border-color: #00eaff;
+    box-shadow: 0 0 15px rgba(0, 234, 255, 0.4);
+}
+
+#btn-start {
+    background: transparent;
+    border: 1px solid #00eaff;
+    color: #00eaff;
+    padding: 15px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.4s ease;
+}
+
+#btn-start:hover {
+    background: #00eaff;
+    color: #02050a;
+    box-shadow: 0 0 25px #00eaff;
+}
+
+.glow-text {
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    color: #00eaff;
+    text-shadow: 0 0 20px #00eaff;
+    margin-bottom: 15px;
+    animation: pulseGlow 2s infinite alternate;
+}
+
+.typing-text {
+    font-size: 1rem;
+    color: #7fdfff;
+    margin-bottom: 30px;
+}
+
+#welcome-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+@keyframes pulseGlow {
+    0% { text-shadow: 0 0 10px #00eaff; opacity: 0.8; }
+    100% { text-shadow: 0 0 25px #00eaff; opacity: 1; }
+}
+
+/* Ajuste no item do histórico para alinhar o botão de excluir */
+.history-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Garante que o texto fique na esquerda e o botão na direita */
+    padding: 12px;
+    padding-right: 35px; /* Abre espaço para o botão de lixeira não atropelar o texto */
+}
+
+/* Estilo do botão de excluir */
+.btn-delete-chat {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+/* Quando passa o mouse no item da lista, a lixeira ganha destaque */
+.history-item:hover .btn-delete-chat {
+    color: #ff4d4d;
+}
+
+/* Quando passa o mouse direto na lixeira */
+.btn-delete-chat:hover {
+    background: rgba(255, 77, 77, 0.2);
+    box-shadow: 0 0 8px rgba(255, 77, 77, 0.4);
+    transform: scale(1.1);
+}
+
+/* Modificação no container principal para aceitar a mudança de tamanho */
+.container {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    height: 100vh;
+    width: 100vw;
+    transition: grid-template-columns 0.4s ease; /* Transição suave */
+}
+
+/* Classe que o JavaScript vai injetar quando o menu fechar */
+.container.sidebar-closed {
+    grid-template-columns: 1fr 0px; /* Encolhe o painel direito para zero */
+}
+
+/* Esconde o conteúdo do painel quando ele fechar para não quebrar o layout */
+.container.sidebar-closed .right-panel {
+    padding: 0;
+    overflow: hidden;
+    border-left: none;
+}
+
+/* Estilo do botão flutuante de Abrir (aparece quando o painel some) */
+#btn-open-sidebar {
+    position: fixed;
+    top: 85px;
+    right: 25px;
+    background: rgba(3, 9, 20, 0.8);
+    border: 1px solid #00eaff;
+    color: #00eaff;
+    padding: 10px 15px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 100;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
+    transition: all 0.3s ease;
+    display: none; /* Começa escondido porque o menu inicia aberto */
+}
+
+#btn-open-sidebar:hover {
+    background: #00eaff;
+    color: #02050a;
+    box-shadow: 0 0 15px #00eaff;
+}
+
+/* Forçar exibição do botão via JS */
+#btn-open-sidebar.visible {
+    display: block;
+}

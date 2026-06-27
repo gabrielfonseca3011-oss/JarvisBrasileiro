@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="welcome-screen">
+    <div class="welcome-content">
+        <h1 class="glow-text">IDENTIFICAÇÃO REQUERIDA</h1>
+        <p class="typing-text">Por favor, insira suas credenciais de acesso.</p>
+        
+        <div class="welcome-form">
+            <input type="text" id="user-name" placeholder="Como devo chamá-lo(a)?">
+            <input type="text" id="user-first-command" placeholder="Qual o seu comando inicial?">
+            <button id="btn-start" onclick="autenticarSistema()">INICIALIZAR J.A.R.V.I.S.</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <main class="chat-area">
+
+        <header class="top-bar">
+            <h1>J.A.R.V.I.S</h1>
+
+            <div class="jarvis-time">
+                <div id="clock"></div>
+                <div id="date"></div>
+            </div>
+        </header>
+
+        <section class="chat-box"></section>
+
+        <div class="input-area">
+            <input type="text" placeholder="Digite sua mensagem...">
+            <button>Enviar</button>
+        </div>
+
+    </main>
+
+    <button id="btn-open-sidebar">☰ Histórico</button>
+
+    <aside class="right-panel">
+
+        <div class="sidebar-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px;">
+                <h3>Histórico de Conversas</h3>
+                <button id="btn-close-sidebar" style="background: transparent; border: none; color: #00eaff; cursor: pointer; font-size: 16px;">✖</button>
+            </div>
+            <button id="btn-new-chat">+ Nova Conversa</button>
+        </div>
+
+        <div class="chat-history-list">
+            </div>
+
+    </aside>
+
+</div>
+
+<script src="jarvis.js"></script>
+
+</body>
+</html>
