@@ -21,7 +21,7 @@ let conversasSalvas = [
         historico: [
             { role: "system", content: "Você é o J.A.R.V.I.S., o assistente virtual inteligente artificial do usuário. Responda de forma prestativa, inteligente e use termos formais como 'Senhor' ou 'Senhora'." },
             { role: "user", content: "Jarvis de uma sugestão do que fazer hoje" },
-            { role: "assistant", content: "Certamente, Senhor. Aqui vão algumas sugestões para hoje, dependendo do seu objetivo: se quiser relaxar, recomendo ouvir música ou assistir a uma série..." }
+            { role: "assistant", content: "Certamente, Senhor. Here vão algumas sugestões para hoje, dependendo do seu objetivo: se quiser relaxar, recomendo ouvir música ou assistir a uma série..." }
         ]
     },
     {
@@ -47,7 +47,7 @@ let conversasSalvas = [
 let idChatAtivo = "chat-1"; 
 let nomeUsuarioGlobal = "Senhor"; 
 
-// NOVA FUNÇÃO: Limpa o Markdown bruto e estrutura o texto por parágrafos/linhas
+// Limpa o Markdown bruto e estrutura o texto por parágrafos/linhas
 function limparMarkdown(texto) {
     let textoLimpo = texto
         .replace(/#{1,6}\s?/g, "")    // Remove os marcadores de título (###)
@@ -55,11 +55,10 @@ function limparMarkdown(texto) {
         .replace(/\*/g, "")            // Remove itálicos simples (*)
         .replace(/`{1,3}/g, "");       // Remove crases de código
 
-    // Divide o texto por quebras de linha, limpa espaços extras e junta com espaçamento duplo
     return textoLimpo.split('\n')
         .map(linha => linha.trim())
-        .filter(linha => linha !== '') // Remove linhas vazias isoladas
-        .join('\n\n');                 // Une as linhas criando blocos bem definidos
+        .filter(linha => linha !== '') 
+        .join('\n\n');                 
 }
 
 // ==========================================================================
@@ -67,20 +66,33 @@ function limparMarkdown(texto) {
 // ==========================================================================
 const chatBox = document.querySelector(".chat-box");
 const inputMensagem = document.querySelector(".input-area input");
-const botaoEnviar = document.querySelector(".input-area button");
+const botaoEnviar = document.getElementById("btn-enviar"); 
 const listaHistoricoHUD = document.querySelector(".chat-history-list");
 const botaoNovoChat = document.getElementById("btn-new-chat");
 
-// Cria um balão visual de mensagem na tela
+// Cria um balão visual de mensagem na tela com botão de ouvir integrado
 function adicionarMensagemNoChat(texto, remetente) {
     const divMensagem = document.createElement("div");
     divMensagem.classList.add("message", remetente);
     
-    // ATUALIZADO: Garante que o navegador respeite as quebras de linha (\n) do texto
     divMensagem.style.whiteSpace = "pre-line";
     
     if (remetente === "bot") {
-        divMensagem.textContent = limparMarkdown(texto);
+        const textoLimpo = limparMarkdown(texto);
+        
+        // Estrutura o balão com a classe de conteúdo e o botão dedicados
+        divMensagem.innerHTML = `
+            <div class="message-content">${textoLimpo}</div>
+            <button class="btn-listen-msg" type="button" title="Ouvir mensagem">🔊</button>
+        `;
+        
+        // Adiciona o evento de clique diretamente neste botão específico
+        const botaoOuvirMsg = divMensagem.querySelector(".btn-listen-msg");
+        if (botaoOuvirMsg) {
+            botaoOuvirMsg.addEventListener("click", () => {
+                falarTexto(textoLimpo);
+            });
+        }
     } else {
         divMensagem.textContent = texto;
     }
@@ -167,7 +179,7 @@ function acionarNovaConversa() {
         id: novoId,
         titulo: "Nova Conversa...",
         historico: [
-            { role: "system", content: "Você é o J.A.R.V.I.S., o assistente virtual inteligente artificial do usuário. Responda de forma prestativa, inteligente e use termos formais como 'Senhor' ou 'Senhora'." }
+            { role: "system", content: `Você é o J.A.R.V.I.S., o assistente virtual inteligente artificial do usuário. Responda de forma prestativa, inteligente e use termos formais como '${nomeUsuarioGlobal}'.` }
         ]
     };
 
@@ -182,7 +194,148 @@ function acionarNovaConversa() {
 }
 
 // ==========================================================================
-// 4. SISTEMA DE AUTENTICAÇÃO E ENVIOS
+// CONFIGURAÇÃO DE AUDIO DA AZURE (SDK OFICIAL VIA WEBSOCKET - SEM ERRO DE CORS)
+// ==========================================================================
+const botaoAudio = document.getElementById("btn-audio");
+let reconhecimentoAzure = null;
+let estaGravando = false;
+let audioPlayerAtual = null; 
+
+// Função que inicializa o Reconhecimento de Voz usando o microfone
+function inicializarReconhecimentoVoz(speechKey, speechRegion) {
+    if (reconhecimentoAzure) return; 
+
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+    speechConfig.speechRecognitionLanguage = "pt-BR";
+    
+    const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+    reconhecimentoAzure = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+    reconhecimentoAzure.recognized = (s, e) => {
+        if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+            inputMensagem.value = e.result.text;
+            inputMensagem.focus();
+        }
+    };
+
+    reconhecimentoAzure.sessionStopped = (s, e) => {
+        botaoAudio.classList.remove("gravando");
+        estaGravando = false;
+    };
+
+    reconhecimentoAzure.canceled = (s, e) => {
+        console.error("Gravação cancelada ou erro:", e.errorDetails);
+        botaoAudio.classList.remove("gravando");
+        estaGravando = false;
+    };
+}
+
+if (botaoAudio) {
+    botaoAudio.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            const respostaChaves = await fetch('keys.json');
+            const chaves = await respostaChaves.json();
+            
+            if (!chaves.AZURE_SPEECH_KEY || !chaves.AZURE_SPEECH_REGION) {
+                console.error("Chaves da Azure Speech ausentes no keys.json");
+                return;
+            }
+
+            inicializarReconhecimentoVoz(chaves.AZURE_SPEECH_KEY, chaves.AZURE_SPEECH_REGION);
+
+            if (estaGravando) {
+                reconhecimentoAzure.stopContinuousRecognitionAsync(
+                    () => {
+                        botaoAudio.classList.remove("gravando");
+                        estaGravando = false;
+                    },
+                    (erro) => console.error(erro)
+                );
+            } else {
+                botaoAudio.classList.add("gravando");
+                estaGravando = true;
+                reconhecimentoAzure.startContinuousRecognitionAsync(
+                    () => { },
+                    (erro) => {
+                        console.error(erro);
+                        botaoAudio.classList.remove("gravando");
+                        estaGravando = false;
+                    }
+                );
+            }
+        } catch (erro) {
+            console.error("Erro ao carregar o microfone da Azure:", erro);
+        }
+    });
+}
+
+// Função de Síntese de Voz (Text-to-Speech) utilizando o SDK da Azure
+async function falarTexto(texto) {
+    try {
+        if (audioPlayerAtual) {
+            audioPlayerAtual.pause();
+            audioPlayerAtual.currentTime = 0;
+        }
+
+        const respostaChaves = await fetch('keys.json');
+        if (!respostaChaves.ok) throw new Error("Erro ao ler keys.json");
+        
+        const chaves = await respostaChaves.json();
+        const speechKey = chaves.AZURE_SPEECH_KEY;
+        const speechRegion = chaves.AZURE_SPEECH_REGION;
+
+        if (!speechKey || !speechRegion) throw new Error("Credenciais ausentes.");
+
+        // Inicializa as configurações usando a biblioteca global carregada do HTML
+        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+        speechConfig.speechSynthesisVoiceName = "pt-BR-FranciscaNeural";
+
+        const sintetizador = new SpeechSDK.SpeechSynthesizer(speechConfig, null);
+        const textoLimpo = texto.replace(/[*#`_-]/g, "").trim();
+
+        sintetizador.speakTextAsync(
+            textoLimpo,
+            (resultado) => {
+                if (resultado.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                    const blobAudio = new Blob([resultado.audioData], { type: "audio/mp3" });
+                    const urlAudio = URL.createObjectURL(blobAudio);
+                    
+                    audioPlayerAtual = new Audio(urlAudio);
+                    audioPlayerAtual.play().catch(err => {
+                        console.warn("Interação prévia do usuário requerida para tocar áudio:", err);
+                    });
+                } else {
+                    console.warn("Síntese incompleta ou rejeitada pela Azure. Detalhes:", resultado.errorDetails);
+                    executarVozContingencia(textoLimpo);
+                }
+                sintetizador.close();
+            },
+            (erro) => {
+                console.error("Erro na síntese da Azure:", erro);
+                sintetizador.close();
+                executarVozContingencia(textoLimpo);
+            }
+        );
+
+    } catch (erro) {
+        console.error("Falha no barramento de voz Azure, aplicando contingência local:", erro);
+        executarVozContingencia(texto);
+    }
+}
+
+// Sistema de segurança corrigido: Correção de 'SynthesisUtterance' para 'SpeechSynthesisUtterance'
+function executarVozContingencia(texto) {
+    window.speechSynthesis.cancel();
+    const fala = new SpeechSynthesisUtterance(texto.replace(/[*#`_-]/g, ""));
+    fala.lang = 'pt-BR';
+    window.speechSynthesis.speak(fala);
+}
+
+// ==========================================================================
+// 4. SISTEMA DE AUTENTICAÇÃO E ENVIOS (RESTAURADO)
 // ==========================================================================
 function autenticarSistema() {
     const inputNome = document.getElementById("user-name");
@@ -205,7 +358,7 @@ function autenticarSistema() {
     adicionarMensagemNoChat(`Olá ${nomeUsuarioGlobal}, os sistemas estão operacionais. Como posso ajudar?`, "bot");
     
     conversasSalvas[0].historico = [
-        { role: "system", content: "Você é o J.A.R.V.I.S..." },
+        { role: "system", content: `Você é o J.A.R.V.I.S., o assistente virtual inteligente artificial do usuário. Responda de forma prestativa, inteligente e use termos formais como '${nomeUsuarioGlobal}'.` },
         { role: "assistant", content: `Olá ${nomeUsuarioGlobal}, os sistemas estão operacionais. Como posso ajudar?` }
     ];
 
@@ -230,11 +383,25 @@ async function processarRespostaIA() {
     const conversaAtual = conversasSalvas.find(c => c.id === idChatAtivo);
     const respostaIA = await chamarIA(conversaAtual.historico);
 
-    // ATUALIZADO: Garante formatação limpa e quebra de linhas no balão final retornado
-    balaoPensando.style.whiteSpace = "pre-line";
-    balaoPensando.textContent = limparMarkdown(respostaIA);
+    const textoLimpo = limparMarkdown(respostaIA);
+
+    const containerTexto = balaoPensando.querySelector(".message-content");
+    if (containerTexto) {
+        containerTexto.textContent = textoLimpo;
+    } else {
+        balaoPensando.textContent = textoLimpo;
+    }
+    
+    // Repassa o evento de clique para o botão do balão gerado dinamicamente
+    const botaoOuvirMsg = balaoPensando.querySelector(".btn-listen-msg");
+    if (botaoOuvirMsg) {
+        botaoOuvirMsg.addEventListener("click", () => {
+            falarTexto(textoLimpo);
+        });
+    }
     
     conversaAtual.historico.push({ role: "assistant", content: respostaIA });
+    renderizarListaHistorico();
 
     inputMensagem.disabled = false;
     botaoEnviar.disabled = false;
@@ -247,12 +414,14 @@ function lidarComEnvio() {
 
     const conversaAtual = conversasSalvas.find(c => c.id === idChatAtivo);
 
-    if (conversaAtual.historico.length <= 1) {
+    if (conversaAtual && conversaAtual.historico.length <= 1) {
         conversaAtual.titulo = texto.substring(0, 20) + (texto.length > 20 ? "..." : "");
     }
 
     adicionarMensagemNoChat(texto, "user");
-    conversaAtual.historico.push({ role: "user", content: texto });
+    if (conversaAtual) {
+        conversaAtual.historico.push({ role: "user", content: texto });
+    }
     
     inputMensagem.value = "";
     renderizarListaHistorico();
@@ -262,8 +431,8 @@ function lidarComEnvio() {
 // ==========================================================================
 // 5. EVENT LISTENERS E INICIALIZADORES
 // ==========================================================================
-botaoEnviar.addEventListener("click", lidarComEnvio);
-botaoNovoChat.addEventListener("click", acionarNovaConversa);
+if (botaoEnviar) botaoEnviar.addEventListener("click", lidarComEnvio);
+if (botaoNovoChat) botaoNovoChat.addEventListener("click", acionarNovaConversa);
 
 inputMensagem.addEventListener("keydown", (e) => { 
     if (e.key === "Enter" && !inputMensagem.disabled) lidarComEnvio(); 
@@ -279,17 +448,27 @@ renderizarListaHistorico();
 // 6. CONEXÃO DIRETA COM AZURE OPENAI API
 // ==========================================================================
 async function chamarIA(historico) {
-    const url = "";
-    const apiKey = ""; 
-
-    const dados = {
-        messages: historico,
-        model: "gpt-5.4", 
-        max_completion_tokens: 4096
-    };
-
     try {
-        const resposta = await fetch(url, {
+        const respostaChaves = await fetch('keys.json');
+        if (!respostaChaves.ok) {
+            throw new Error("Não foi possível carregar as configurações de autenticação.");
+        }
+        
+        const chaves = await respostaChaves.json();
+        const apiKey = chaves.AZURE_OPENAI_KEY;
+        const urlEndpoint = chaves.AZURE_OPENAI_URL;
+
+        if (!apiKey || !urlEndpoint) {
+            throw new Error("Chave ou URL da API não encontradas no arquivo de configuração.");
+        }
+
+        const dados = {
+            messages: historico,
+            model: "gpt-5.4", 
+            max_completion_tokens: 4096
+        };
+
+        const resposta = await fetch(urlEndpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -307,7 +486,7 @@ async function chamarIA(historico) {
 
     } catch (erro) {
         console.error("Erro ao conectar com o J.A.R.V.I.S.:", erro);
-        return "Desculpe, senhor. Houve uma falha de conexão com meus servidores centrais. Verifique os logs do console.";
+        return "Desculpe, senhor. Houve uma falha de conexão ou autenticação com meus servidores centrais. Verifique os logs do console.";
     }
 }
 
@@ -318,12 +497,16 @@ const btnCloseSidebar = document.getElementById("btn-close-sidebar");
 const btnOpenSidebar = document.getElementById("btn-open-sidebar");
 const containerPrincipal = document.querySelector(".container");
 
-btnCloseSidebar.addEventListener("click", () => {
-    containerPrincipal.classList.add("sidebar-closed"); 
-    btnOpenSidebar.classList.add("visible");            
-});
+if (btnCloseSidebar) {
+    btnCloseSidebar.addEventListener("click", () => {
+        containerPrincipal.classList.add("sidebar-closed"); 
+        btnOpenSidebar.classList.add("visible");            
+    });
+}
 
-btnOpenSidebar.addEventListener("click", () => {
-    containerPrincipal.classList.remove("sidebar-closed"); 
-    btnOpenSidebar.classList.remove("visible");            
-});
+if (btnOpenSidebar) {
+    btnOpenSidebar.addEventListener("click", () => {
+        containerPrincipal.classList.remove("sidebar-closed"); 
+        btnOpenSidebar.classList.remove("visible");            
+    });
+}
